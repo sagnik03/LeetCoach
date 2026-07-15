@@ -1,0 +1,20 @@
+{
+  "name": "leetcoach-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered spaced repetition system for LeetCode",
+  "workspaces": [
+    "apps/backend",
+    "apps/extension",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:extension": "npm run dev --workspace=apps/extension",
+    "build:extension": "npm run build --workspace=apps/extension",
+    "build:backend": "npm run build --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
