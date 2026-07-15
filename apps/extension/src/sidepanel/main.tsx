@@ -6,13 +6,17 @@ import {
   MessageSquare, 
   Settings as SettingsIcon, 
   Flame, 
-  User 
+  User,
+  LogOut
 } from 'lucide-react';
+import { AuthProvider, useAuth } from '../context/AuthContext.js';
+import { AuthGuard } from '../components/auth/AuthGuard.js';
 import '../styles/index.css';
 
 function Sidepanel() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'queue' | 'chat' | 'settings'>('queue');
   const [streak] = useState(5);
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
@@ -31,9 +35,10 @@ function Sidepanel() {
             <Flame className="w-3.5 h-3.5 fill-orange-500/20" />
             <span>{streak} days</span>
           </div>
-          <button className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 text-slate-300 hover:text-white transition-colors">
+          <div className="flex items-center gap-2 text-xs text-slate-300">
             <User className="w-3.5 h-3.5" />
-          </button>
+            <span className="max-w-[70px] truncate">{user?.email}</span>
+          </div>
         </div>
       </header>
 
@@ -68,7 +73,7 @@ function Sidepanel() {
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex flex-col h-full space-y-4">
+          <div className="flex flex-col h-full space-y-4 justify-between">
             <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
               <MessageSquare className="w-10 h-10 text-indigo-500/50 mb-3" />
               <h3 className="font-medium text-slate-300">LeetCoach RAG Chat</h3>
@@ -94,15 +99,31 @@ function Sidepanel() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-200">Settings</h2>
-            <div className="space-y-2">
-              <label className="text-xs text-slate-400">Model Selection</label>
-              <select className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
-                <option>Gemini 1.5 Flash (Recommended)</option>
-                <option>Gemini 1.5 Pro</option>
-                <option>GPT-4o Mini</option>
-              </select>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-200">Settings</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Customize your LeetCoach learning platform.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs text-slate-400 font-medium">Model Selection</label>
+                <select className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 transition-colors">
+                  <option>Gemini 1.5 Flash (Recommended)</option>
+                  <option>Gemini 1.5 Pro</option>
+                  <option>GPT-4o Mini</option>
+                </select>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800">
+                <button
+                  onClick={() => logout()}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-red-950/20 hover:bg-red-900/30 border border-red-500/15 hover:border-red-500/35 text-red-400 rounded-lg text-xs font-semibold transition-all duration-200"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out of Account</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -151,8 +172,18 @@ function Sidepanel() {
   );
 }
 
+function App() {
+  return (
+    <AuthProvider>
+      <AuthGuard>
+        <Sidepanel />
+      </AuthGuard>
+    </AuthProvider>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Sidepanel />
+    <App />
   </React.StrictMode>
 );
