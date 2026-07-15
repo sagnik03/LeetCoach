@@ -11,17 +11,21 @@ import {
 } from 'lucide-react';
 import { AuthProvider, useAuth } from '../context/AuthContext.js';
 import { AuthGuard } from '../components/auth/AuthGuard.js';
+import { QueueProvider, UserProblem } from '../context/QueueContext.js';
+import { RevisionQueueView } from '../components/revision/RevisionQueueView.js';
+import { ActiveReviewCard } from '../components/revision/ActiveReviewCard.js';
 import '../styles/index.css';
 
-function Sidepanel() {
+function SidepanelContent() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'queue' | 'chat' | 'settings'>('queue');
+  const [selectedCard, setSelectedCard] = useState<UserProblem | null>(null);
   const [streak] = useState(5);
   const { user, logout } = useAuth();
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+      <header className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded bg-indigo-600 flex items-center justify-center font-bold text-white shadow shadow-indigo-500/30">
             L
@@ -37,23 +41,19 @@ function Sidepanel() {
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-300">
             <User className="w-3.5 h-3.5" />
-            <span className="max-w-[70px] truncate">{user?.email}</span>
+            <span className="max-w-[70px] truncate text-[10px]">{user?.email}</span>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-4 min-h-0">
         {activeTab === 'queue' && (
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-500/15">
-              <h2 className="text-lg font-semibold text-indigo-200">Daily Revision Queue</h2>
-              <p className="text-xs text-slate-400 mt-1">Review solved problems to maintain your recall memory.</p>
-              <div className="mt-4 p-6 rounded-lg bg-slate-900/60 border border-slate-800/80 text-center">
-                <p className="text-sm text-slate-400">All caught up! No problems scheduled for review today.</p>
-              </div>
-            </div>
-          </div>
+          selectedCard ? (
+            <ActiveReviewCard card={selectedCard} onBack={() => setSelectedCard(null)} />
+          ) : (
+            <RevisionQueueView onSelectCard={setSelectedCard} />
+          )
         )}
 
         {activeTab === 'dashboard' && (
@@ -61,11 +61,11 @@ function Sidepanel() {
             <h2 className="text-lg font-semibold text-slate-200">Analytics Dashboard</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                <span className="text-xs text-slate-400">Total Solved</span>
+                <span className="text-[10px] text-slate-400">Total Solved</span>
                 <p className="text-2xl font-bold mt-1 text-indigo-400">0</p>
               </div>
               <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                <span className="text-xs text-slate-400">Mastery Level</span>
+                <span className="text-[10px] text-slate-400">Mastery Level</span>
                 <p className="text-2xl font-bold mt-1 text-cyan-400">0.0%</p>
               </div>
             </div>
@@ -130,10 +130,13 @@ function Sidepanel() {
       </main>
 
       {/* Navigation Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 px-2 py-1 flex justify-around">
+      <footer className="bg-slate-900 border-t border-slate-800 px-2 py-1 flex justify-around shrink-0">
         <button
-          onClick={() => setActiveTab('queue')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors ${
+          onClick={() => {
+            setSelectedCard(null);
+            setActiveTab('queue');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors bg-transparent border-0 cursor-pointer ${
             activeTab === 'queue' ? 'text-indigo-400 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -141,8 +144,11 @@ function Sidepanel() {
           <span>Queue</span>
         </button>
         <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors ${
+          onClick={() => {
+            setSelectedCard(null);
+            setActiveTab('dashboard');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors bg-transparent border-0 cursor-pointer ${
             activeTab === 'dashboard' ? 'text-indigo-400 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -150,8 +156,11 @@ function Sidepanel() {
           <span>Dashboard</span>
         </button>
         <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors ${
+          onClick={() => {
+            setSelectedCard(null);
+            setActiveTab('chat');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors bg-transparent border-0 cursor-pointer ${
             activeTab === 'chat' ? 'text-indigo-400 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -159,8 +168,11 @@ function Sidepanel() {
           <span>Chat</span>
         </button>
         <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors ${
+          onClick={() => {
+            setSelectedCard(null);
+            setActiveTab('settings');
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] transition-colors bg-transparent border-0 cursor-pointer ${
             activeTab === 'settings' ? 'text-indigo-400 bg-indigo-500/5' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -176,7 +188,9 @@ function App() {
   return (
     <AuthProvider>
       <AuthGuard>
-        <Sidepanel />
+        <QueueProvider>
+          <SidepanelContent />
+        </QueueProvider>
       </AuthGuard>
     </AuthProvider>
   );
