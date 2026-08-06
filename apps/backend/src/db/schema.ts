@@ -122,3 +122,19 @@ export const userProblemsRelations = relations(userProblems, ({ one, many }) => 
   reviewLogs: many(reviewLogs),
   embeddings: many(embeddings),
 }));
+
+export const codeSubmissionsRelations = relations(codeSubmissions, ({ one }) => ({
+  userProblem: one(userProblems, { fields: [codeSubmissions.userProblemId], references: [userProblems.id] }),
+}));
+
+export const mistakesRelations = relations(mistakes, ({ one }) => ({
+  userProblem: one(userProblems, { fields: [mistakes.userProblemId], references: [userProblems.id] }),
+}));
+
+export const reviewLogsRelations = relations(reviewLogs, ({ one }) => ({
+  userProblem: one(userProblems, { fields: [reviewLogs.userProblemId], references: [userProblems.id] }),
+}));
+
+export const embeddingsRelations = relations(embeddings, ({ one }) => ({
+  userProblem: one(userProblems, { fields: [embeddings.userProblemId], references: [userProblems.id] }),
+}));

@@ -23,14 +23,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'SUBMISSION_ACCEPTED') {
     handleSubmissionAccepted(message.data)
-      .then((result) => sendResponse({ success: true, result }))
+      .then((result) => {
+        // Broadcast event to sidepanel
+        chrome.runtime.sendMessage({ type: 'PROBLEM_SYNCED', data: result }).catch(() => {});
+        sendResponse({ success: true, result });
+      })
       .catch((error) => {
         console.error('Error syncing submission:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true; // Keep message port open for async response
   }
+
+  if (message.type === 'SYNC_PENDING_QUEUE') {
+    syncPendingQueue()
+      .then((res) => sendResponse({ success: true, res }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
 });
+
+async function syncPendingQueue() {
+  const storage = await chrome.storage.local.get(['token', 'submissionsQueue']);
+  const { token, submissionsQueue } = storage;
+  if (!token || !submissionsQueue || submissionsQueue.length === 0) return;
+
+  console.log(`Syncing ${submissionsQueue.length} pending submissions from local queue...`);
+  const remainingQueue = [];
+
+  for (const item of submissionsQueue) {
+    try {
+      const response = await fetch('http://localhost:3000/api/problems/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(item)
+      });
+      if (!response.ok) {
+        remainingQueue.push(item);
+      }
+    } catch (e) {
+      remainingQueue.push(item);
+    }
+  }
+
+  await chrome.storage.local.set({ submissionsQueue: remainingQueue });
+  chrome.runtime.sendMessage({ type: 'PROBLEM_SYNCED' }).catch(() => {});
+}
 
 async function handleSubmissionAccepted(data: any) {
   console.log('Scraped submission accepted data:', data);
@@ -39,7 +80,7 @@ async function handleSubmissionAccepted(data: any) {
   const storage = await chrome.storage.local.get(['token', 'submissionsQueue']);
   const token = storage.token;
 
-  // Store in local backup queue in case backend is offline
+  // Store in local backup queue in case backend is offline or unauthenticated
   const submissionsQueue = storage.submissionsQueue || [];
   submissionsQueue.push({ ...data, timestamp: Date.now() });
   await chrome.storage.local.set({ submissionsQueue });

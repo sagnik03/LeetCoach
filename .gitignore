@@ -1,16 +1,14 @@
 # LeetCoach Ignore Rules
 
-# Project Guide
-PROJECT_GUIDE.txt
-
 # Dependencies
 node_modules/
 .pnpm-store/
 
-# Builds
+# Builds & Outputs
 dist/
 build/
-.tsbuildinfo
+*.tsbuildinfo
+*.resolved
 
 # Environment variables
 .env
@@ -18,11 +16,15 @@ build/
 .env.*.local
 
 # Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS Files
+# IDE & OS Files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+

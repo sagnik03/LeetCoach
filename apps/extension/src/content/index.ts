@@ -2,59 +2,34 @@
 
 console.log('LeetCoach Content Script loaded.');
 
-// Helper to inject code into the page context (needed to access Monaco Editor API)
-function injectScript() {
-  const scriptContent = `
-    (function() {
-      // Listen for custom requests from the content script
-      window.addEventListener('LeetCoach:RequestPageData', () => {
-        try {
-          let code = '';
-          let language = 'javascript'; // default fallback
+function extractCodeFromDOM(): { code: string; language: string } {
+  let code = '';
+  let language = 'javascript';
 
-          // Retrieve code from Monaco Editor
-          if (window.monaco && window.monaco.editor) {
-            const models = window.monaco.editor.getModels();
-            if (models && models.length > 0) {
-              // Find the model containing LeetCode editor content
-              // Typically, the main code editor model is the first one or contains the code
-              code = models[0].getValue();
-            }
-          }
+  // Extract from visible view lines in Monaco editor DOM
+  const viewLines = document.querySelectorAll('.monaco-editor .view-line');
+  if (viewLines && viewLines.length > 0) {
+    const lines: string[] = [];
+    viewLines.forEach((el) => {
+      lines.push(el.textContent || '');
+    });
+    code = lines.join('\n');
+  }
 
-          // If Monaco is not accessible, attempt to find code from textareas or DOM attributes
-          if (!code) {
-            const editorTextarea = document.querySelector('.monaco-editor textarea');
-            if (editorTextarea) {
-              code = (editorTextarea as any).value || '';
-            }
-          }
+  if (!code) {
+    const textarea = document.querySelector('.monaco-editor textarea') as HTMLTextAreaElement;
+    if (textarea && textarea.value) {
+      code = textarea.value;
+    }
+  }
 
-          // Try to detect language from class list or drop-downs
-          const langBtn = document.querySelector('button[id*="lang-select"]');
-          if (langBtn) {
-            language = langBtn.textContent?.trim().toLowerCase() || language;
-          }
+  const langBtn = document.querySelector('button[id*="lang-select"], [class*="lang"]');
+  if (langBtn) {
+    language = langBtn.textContent?.trim().toLowerCase() || language;
+  }
 
-          // Dispatch results back to Content Script
-          window.dispatchEvent(new CustomEvent('LeetCoach:ResponsePageData', {
-            detail: { code, language }
-          }));
-        } catch (e) {
-          console.error('LeetCoach: Error extracting code in page context', e);
-        }
-      });
-    })();
-  `;
-
-  const script = document.createElement('script');
-  script.textContent = scriptContent;
-  (document.head || document.documentElement).appendChild(script);
-  script.remove();
+  return { code, language };
 }
-
-// Initialize injection
-injectScript();
 
 // Monitor DOM for submission result
 let isChecking = false;
@@ -83,8 +58,6 @@ observer.observe(document.body, {
 
 function findSuccessIndicator(): boolean {
   // 1. New LeetCode Layout: Look for dynamic attributes or success text
-
-  // Look for the accepted element: e.g. green success checkmarks or badge classes
   const submissionResult = document.querySelector('[data-e2e-locator="submission-result"]');
   if (submissionResult) {
     const text = submissionResult.textContent?.trim();
@@ -105,34 +78,51 @@ function findSuccessIndicator(): boolean {
 function handleSuccessState() {
   console.log('LeetCoach: Detected successful LeetCode submission!');
 
-  // Request code/language from injected page context script
-  window.addEventListener('LeetCoach:ResponsePageData', (event: any) => {
+  let responded = false;
+
+  const onResponse = (event: any) => {
+    if (responded) return;
+    responded = true;
     const { code, language } = event.detail;
     
-    const problemMetadata = extractProblemMetadata();
-    
-    const syncData = {
-      ...problemMetadata,
-      code,
-      language,
-      status: 'Accepted'
-    };
+    const finalData = (code && code.trim()) ? { code, language } : extractCodeFromDOM();
+    sendSyncMessage(finalData);
+  };
 
-    // Send to background service worker
-    chrome.runtime.sendMessage({
-      type: 'SUBMISSION_ACCEPTED',
-      data: syncData
-    }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('LeetCoach background communication error:', chrome.runtime.lastError);
-      } else {
-        console.log('LeetCoach sync outcome:', response);
-      }
-    });
-  }, { once: true });
+  window.addEventListener('LeetCoach:ResponsePageData', onResponse, { once: true });
 
-  // Dispatch request event
+  // Dispatch request event to MAIN world script
   window.dispatchEvent(new CustomEvent('LeetCoach:RequestPageData'));
+
+  // Timeout fallback to DOM extraction if MAIN world event doesn't respond
+  setTimeout(() => {
+    if (!responded) {
+      responded = true;
+      console.log('LeetCoach: Falling back to DOM code extraction...');
+      sendSyncMessage(extractCodeFromDOM());
+    }
+  }, 300);
+}
+
+function sendSyncMessage(extracted: { code: string; language: string }) {
+  const problemMetadata = extractProblemMetadata();
+  const syncData = {
+    ...problemMetadata,
+    code: extracted.code,
+    language: extracted.language,
+    status: 'Accepted'
+  };
+
+  chrome.runtime.sendMessage({
+    type: 'SUBMISSION_ACCEPTED',
+    data: syncData
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('LeetCoach background communication error:', chrome.runtime.lastError);
+    } else {
+      console.log('LeetCoach sync outcome:', response);
+    }
+  });
 }
 
 function extractProblemMetadata() {

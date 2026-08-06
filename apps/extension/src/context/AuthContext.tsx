@@ -60,9 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(data.token);
       setUser(data.user);
 
-      // Save to chrome.storage
+      // Save to chrome.storage and trigger background sync of queued local submissions
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         await chrome.storage.local.set({ token: data.token, user: data.user });
+        chrome.runtime.sendMessage({ type: 'SYNC_PENDING_QUEUE' }).catch(() => {});
       }
 
       return true;

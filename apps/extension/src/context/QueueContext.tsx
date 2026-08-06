@@ -83,12 +83,22 @@ export const QueueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [token]);
 
-  // Re-fetch queue when user changes
+  // Re-fetch queue when user changes or when a problem sync event occurs
   useEffect(() => {
     if (user && token) {
       fetchQueue();
     } else {
       setQueue([]);
+    }
+
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+      const listener = (message: any) => {
+        if (message.type === 'PROBLEM_SYNCED') {
+          fetchQueue();
+        }
+      };
+      chrome.runtime.onMessage.addListener(listener);
+      return () => chrome.runtime.onMessage.removeListener(listener);
     }
   }, [user, token, fetchQueue]);
 
