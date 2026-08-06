@@ -1,4 +1,9 @@
-# LeetCoach Ignore Rules
+# Confidential Guides & Internal Docs
+SYSTEM_DESIGN.md
+PROJECT_GUIDE.txt
+project_instructions.md
+*_handbook.md
+*.resolved
 
 # Dependencies
 node_modules/
@@ -8,7 +13,6 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-*.resolved
 
 # Environment variables
 .env
